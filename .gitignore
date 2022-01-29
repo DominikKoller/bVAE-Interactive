@@ -24,3 +24,9 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# OSX generated files
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
