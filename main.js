@@ -4,11 +4,11 @@
 const ort = require('onnxruntime-web');
 
 var ctx;
+var canvas;
 var decoder;
 
 async function drawResult(x, y) {
     try {
-
         x = (x-0.5) * 10
         y = (y-0.5) * 10
 
@@ -21,21 +21,19 @@ async function drawResult(x, y) {
 
         const data_X_out = X_out.output.data;
 
-        // read from results
-        console.log(data_X_out)
-        console.log("get")
-        ctx_imageData = ctx.getImageData(0,0, 28, 28)
-        console.log("set")
+        
 
-        ctx_imageData.data.set(new Uint8ClampedArray(data_X_out))
-        console.log("put")
+        imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
+        offscreen = new OffscreenCanvas(28, 28);
+        offscreenCtx = offscreen.getContext('2d');
+        offscreenCtx.putImageData(imageData, 0,0)
 
-        ctx.putImageData(ctx_imageData, 0,0)
-        // ctx.putImageData(data_X_out, 0,0)
-        //const dataC = results.c.data;
-        // console.log(data_X_out)
-        // document.write(`data of result tensor': ${data_X_out}`);
-        // document.write('hellloo')
+        let rect = canvas.getBoundingClientRect();
+        ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
+
+        // ctx_imageData = ctx.getImageData(0,0, 28, 28)
+        // ctx_imageData.data.set(new Uint8ClampedArray(data_X_out))
+        // ctx.putImageData(ctx_imageData, 0,0)
 
     } catch (e) {
         document.write(`failed to inference ONNX model: ${e}.`);
@@ -44,7 +42,6 @@ async function drawResult(x, y) {
 
 // use an async context to call onnxruntime functions.
 async function main() {
-    console.log("what")
     const interactionCanvas = document.getElementById('interaction')
     const interactionCtx = interactionCanvas.getContext('2d')
 
@@ -53,9 +50,11 @@ async function main() {
     interactionCtx.lineWidth = 10
     interactionCtx.stroke();
 
-    var canvas = document.getElementById('result');
+    canvas = document.getElementById('result');
     ctx = canvas.getContext('2d');
     ctx.fillRect(10, 10, 50, 50);
+
+    // encoder = await ort.InferenceSession.create('./encoder.onnx')
 
     decoder = await ort.InferenceSession.create('./decoder.onnx');
     
