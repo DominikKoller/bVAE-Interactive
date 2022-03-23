@@ -55,8 +55,8 @@ async function setup(interactionCanvas, resultCanvas, encoder, decoder, scale) {
 
     encoder = await ort.InferenceSession.create(encoder)
 
-    const X = await loadTensor("mnist_X.json")
-    const Y = await loadTensor("mnist_Y.json")
+    const X = await loadTensor("data/mnist_X.json")
+    const Y = await loadTensor("data/mnist_Y.json")
     const feeds = { input: X };
     const Z = await encoder.run(feeds);
 
