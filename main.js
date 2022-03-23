@@ -3,6 +3,86 @@
 
 const ort = require('onnxruntime-web');
 
+// TODO figure out how webpack handles modules & make these regions modules
+//#region minigraphics
+class Frame {
+    constructor(canvas, normalize=true, scale=1.0) {
+        this.elements = []
+
+        this.canvas = canvas
+        this.context = canvas.getContext('2d')
+
+        if(normalize) {
+            this.context.translate(canvas.width/2, canvas.height/2)
+            this.context.scale(scale*canvas.width/2, scale*canvas.height/2)
+        }
+    }
+
+    draw() {
+        this.clear()
+        for(const element of this.elements) {
+            element.draw(this.context)
+        }
+    }
+
+    clear(){
+        this.context.save()
+        this.context.setTransform(1,0,0,1,0,0)
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        this.context.restore()
+    }
+
+    addElement(element) {
+        this.elements.push(element)
+    }
+}
+
+class Vector {
+    constructor(x, y) {
+        this.x=x
+        this.y=y
+    }
+
+    transform(matrix) {
+        return new Vector(matrix.a * this.x + matrix.c * this.y + matrix.e,
+                          matrix.b * this.x + matrix.d * this.y + matrix.f)
+    }
+}
+
+class PointElement {
+    constructor(position, radius=3, fillStyle='#000000') {
+        this.position=position
+        this.radius=radius
+        this.fillStyle=fillStyle
+    }
+
+    draw(context) {
+        // TODO low prio do this in the frame, once, for efficiency
+        context.save()
+        context.fillStyle = this.fillStyle
+        const t = context.getTransform()
+        context.resetTransform()
+
+        var position = this.position.transform(t)
+
+        context.beginPath()
+        context.arc(position.x, position.y, this.radius, 0, 2*Math.PI)
+        context.fill()
+
+        //context.setTransform(t)
+        context.restore()
+    }
+}
+
+// function pixelSizedDrawing(ctx, f){
+//     const t = ctx.getTransform()
+//     ctx.resetTransform()
+//     f(t)
+//     ctx.setTransform(t)
+// }
+//#endregion minigraphics
+
+//#region main
 async function drawResult(canvas, decoder, x, y) {
     try {
         // prepare inputs. a tensor need its corresponding TypedArray as data
@@ -75,17 +155,49 @@ async function setup(interactionCanvas, resultCanvas, encoder, decoder, scale) {
     }
 }
 
+async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
+    
+    latentScale = 1.0/7
+    latentFrame = new Frame(latentCanvas, true, latentScale)
+
+    const X = await loadTensor("data/mnist_X.json")
+    const Y = await loadTensor("data/mnist_Y.json")
+    const feeds = { input: X };
+    
+    encoder = await ort.InferenceSession.create(encoder)
+
+    const Z = await encoder.run(feeds);
+
+    for (let i = 0; i < X.dims[0]; i++) { 
+        const hue = Math.floor((at(Y, [i])/10.0) * 360)
+        const fillStyle = 'hsla('+ hue +',70%,50%,0.3)'
+
+        const position = new Vector(Z.output.data[2*i], Z.output.data[2*i+1])
+        const pointElement = new PointElement(position, 3, fillStyle)
+        latentFrame.addElement(pointElement)
+    }
+
+    latentFrame.draw()
+}
+
+
 async function main(){
-    await setup(interactionCanvas=document.getElementById('ae_interaction'),
-                resultCanvas=document.getElementById('ae_result'),
-                encoder='ae_encoder.onnx',
-                decoder='ae_decoder.onnx',
-                scale = 1.0/20)
-    await setup(interactionCanvas=document.getElementById('vae_interaction'),
-                resultCanvas=document.getElementById('vae_result'),
-                encoder='vae_encoder.onnx',
-                decoder='vae_decoder.onnx',
-                scale = 1.0/7)
+    await setupArchitecture(inputCanvas=document.getElementById('architectureInput'),
+                            latentCanvas=document.getElementById('architectureLatent'),
+                            outputCanvas=document.getElementById('architectureOutput'),
+                            encoder='architecture_encoder.onnx',
+                            decoder='architecture_decoder.onnx')
+
+    // await setup(interactionCanvas=document.getElementById('ae_interaction'),
+    //             resultCanvas=document.getElementById('ae_result'),
+    //             encoder='ae_encoder.onnx',
+    //             decoder='ae_decoder.onnx',
+    //             scale = 1.0/20)
+    // await setup(interactionCanvas=document.getElementById('vae_interaction'),
+    //             resultCanvas=document.getElementById('vae_result'),
+    //             encoder='vae_encoder.onnx',
+    //             decoder='vae_decoder.onnx',
+    //             scale = 1.0/7)
 }
 
 async function loadTensor(jsonPath){
@@ -102,13 +214,6 @@ function getMousePosition(canvas, event) {
     const matrix = ctx.getTransform().invertSelf();
     
     return transformPoint(matrix, point)
-}
-
-function transformPoint(matrix, point) {
-    return  {
-        x: matrix.a * point.x + matrix.c * point.y + matrix.e,
-        y: matrix.b * point.x + matrix.d * point.y + matrix.f,
-    };
 }
 
 function *flatten(array) {
@@ -180,12 +285,6 @@ function pixelSizedLine(ctx, from, to, width) {
         ctx.stroke()
     })
 }
-
-function pixelSizedDrawing(ctx, f){
-    const t = ctx.getTransform()
-    ctx.resetTransform()
-    f(t)
-    ctx.setTransform(t)
-}
+//#endregion main
 
 main();
