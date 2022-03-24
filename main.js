@@ -47,6 +47,22 @@ class Vector {
         return new Vector(matrix.a * this.x + matrix.c * this.y + matrix.e,
                           matrix.b * this.x + matrix.d * this.y + matrix.f)
     }
+
+    add(other) {
+        return new Vector(this.x+other.x, this.y+other.y)
+    }
+
+    subtract(other) {
+        return new Vector(this.x-other.x, this.y-other.y)
+    }
+
+    length() {
+        return Math.sqrt(this.x*this.x + this.y*this.y)
+    }
+
+    distance(other) {
+        return other.subtract(this).length()
+    }
 }
 
 class PointElement {
@@ -168,6 +184,8 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
 
     const Z = await encoder.run(feeds);
 
+    const latentVectors = []
+
     for (let i = 0; i < X.dims[0]; i++) { 
         const hue = Math.floor((at(Y, [i])/10.0) * 360)
         const fillStyle = 'hsla('+ hue +',70%,50%,0.3)'
@@ -175,7 +193,49 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         const position = new Vector(Z.output.data[2*i], Z.output.data[2*i+1])
         const pointElement = new PointElement(position, 3, fillStyle)
         latentFrame.addElement(pointElement)
+        latentVectors.push(position)
     }
+
+    var highlightPoint
+
+    latentCanvas.addEventListener("mousemove", function(e)
+    {
+        const mouse = getMousePosition(latentCanvas, e);
+        // drawResult(resultCanvas, decoder, x, y)
+
+        // TODO low prio this could be done more efficiently
+        const distances = latentVectors.map(vector => vector.distance(mouse))
+        const minDist = Math.min(...distances)
+        const minDistIndex = distances.indexOf(minDist)
+        const minDistPosition = latentVectors[minDistIndex]
+
+        if(highlightPoint == null) {
+            highlightPoint = new PointElement(minDistPosition, 10)
+            latentFrame.addElement(highlightPoint)
+        } else {
+            highlightPoint.position = minDistPosition;
+        }
+        latentFrame.draw()
+
+        offscreen = new OffscreenCanvas(28, 28);
+        offscreenCtx = offscreen.getContext('2d');
+        var imgData = offscreenCtx.createImageData(28, 28); // width x height
+        var data = imgData.data;
+        // copy img byte-per-byte into our ImageData
+        for (var i = 0; i < 28*28; i++) {
+            data[i*4] = X.data[i + 28*28*minDistIndex] * 255;
+            data[i*4+1] = X.data[i + 28*28*minDistIndex] * 255
+            data[i*4+2] = X.data[i + 28*28*minDistIndex] * 255
+            data[i*4+3] = 255
+        }
+        // now we can draw our imagedata onto the canvas
+        offscreenCtx.putImageData(imgData, 0, 0);
+
+        let rect = inputCanvas.getBoundingClientRect();
+        let ctx = inputCanvas.getContext('2d')
+        ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
+        
+    });
 
     latentFrame.draw()
 }
@@ -210,10 +270,12 @@ function getMousePosition(canvas, event) {
     let rect = canvas.getBoundingClientRect();
     let ctx = canvas.getContext('2d')
 
-    const point = {x: event.clientX - rect.left, y: event.clientY - rect.top};
+    // const point = {x: event.clientX - rect.left, y: event.clientY - rect.top};
+    const vector = new Vector(event.clientX - rect.left, event.clientY - rect.top)
     const matrix = ctx.getTransform().invertSelf();
     
-    return transformPoint(matrix, point)
+    // return transformPoint(matrix, point)
+    return vector.transform(matrix)
 }
 
 function *flatten(array) {
@@ -231,6 +293,7 @@ function shape(array) {
     return [...shapegen(array)]
 }
 
+// TODO redesign this
 function at(tensor, indices){
     var index=0
     var dims = [...tensor.dims] // copy the array so we're not messing with dims
