@@ -181,7 +181,6 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
     const feeds = { input: X };
     
     encoder = await ort.InferenceSession.create(encoder)
-
     const Z = await encoder.run(feeds);
 
     const latentVectors = []
@@ -196,12 +195,34 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         latentVectors.push(position)
     }
 
+    decoder = await ort.InferenceSession.create(decoder)
     var highlightPoint
 
-    latentCanvas.addEventListener("mousemove", function(e)
+    latentCanvas.addEventListener("mousemove", async function(e)
     {
         const mouse = getMousePosition(latentCanvas, e);
-        // drawResult(resultCanvas, decoder, x, y)
+        
+        // Drawing result to Output canvas. This should always be the first thing we do.
+        try {
+            // prepare inputs. a tensor need its corresponding TypedArray as data
+            const Z = new ort.Tensor('float32', [mouse.x, mouse.y], [1, 2]);
+            const feeds = { input: Z };
+            const X_out = await decoder.run(feeds);
+    
+            const data_X_out = X_out.output.data;
+    
+            imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
+            offscreen = new OffscreenCanvas(28, 28);
+            offscreenCtx = offscreen.getContext('2d');
+            offscreenCtx.putImageData(imageData, 0,0)
+    
+            let rect = outputCanvas.getBoundingClientRect();
+            let ctx = outputCanvas.getContext('2d')
+            ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
+    
+        } catch (e) {
+            console.log(`failed to inference ONNX model: ${e}.`);
+        }
 
         // TODO low prio this could be done more efficiently
         const distances = latentVectors.map(vector => vector.distance(mouse))
