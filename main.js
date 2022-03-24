@@ -198,8 +198,15 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
     decoder = await ort.InferenceSession.create(decoder)
     var highlightPoint
 
+    var inferenceIsRunning = false
+
     latentCanvas.addEventListener("mousemove", async function(e)
     {
+        if(inferenceIsRunning){
+            return
+        }
+        inferenceIsRunning = true
+        
         const mouse = getMousePosition(latentCanvas, e);
         
         // Drawing result to Output canvas. This should always be the first thing we do.
@@ -256,6 +263,7 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         let ctx = inputCanvas.getContext('2d')
         ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
         
+        inferenceIsRunning = false
     });
 
     latentFrame.draw()
