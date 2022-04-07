@@ -139,6 +139,7 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
             return
         }
         inferenceIsRunning = true
+        try {
         
         const mouse = getMousePosition(latentCanvas, e);
         
@@ -152,13 +153,6 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
             const data_X_out = X_out.output.data;
     
             imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
-            // offscreen = new OffscreenCanvas(28, 28);
-            // offscreenCtx = offscreen.getContext('2d');
-            // offscreenCtx.putImageData(imageData, 0,0);
-    
-            // let rect = outputCanvas.getBoundingClientRect();
-            // let ctx = outputCanvas.getContext('2d')
-            // ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
             let ctx = outputCanvas.getContext('2d')
             ctx.putImageData(imageData, 0, 0);
     
@@ -186,9 +180,8 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         }
         latentFrame.draw()
 
-        offscreen = new OffscreenCanvas(28, 28);
-        offscreenCtx = offscreen.getContext('2d');
-        var imgData = offscreenCtx.createImageData(28, 28); // width x height
+        let ctx = inputCanvas.getContext('2d')
+        var imgData = ctx.createImageData(28, 28);
         var data = imgData.data;
         // copy img byte-per-byte into our ImageData
         for (var i = 0; i < 28*28; i++) {
@@ -198,13 +191,10 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
             data[i*4+3] = 255
         }
         // now we can draw our imagedata onto the canvas
-        offscreenCtx.putImageData(imgData, 0, 0);
-
-        let rect = inputCanvas.getBoundingClientRect();
-        let ctx = inputCanvas.getContext('2d')
-        ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
-        
+        ctx.putImageData(imgData, 0, 0);
+        } finally {
         inferenceIsRunning = false
+        }
     };
 
     latentCanvas.addEventListener("mousemove", onMove);
