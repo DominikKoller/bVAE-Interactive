@@ -166,14 +166,14 @@ async function setup(interactionCanvas, resultCanvas, encoder, decoder, scale) {
         }
 
         interactionCtx.beginPath();
-        pixelSizedPoint(interactionCtx, point, radius=3)
+        pixelSizedPoint(interactionCtx, point, radius=2)
         interactionCtx.fill();
     }
 }
 
 async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
     
-    latentScale = 1.0/7
+    latentScale = 1.0/4
     latentFrame = new Frame(latentCanvas, true, latentScale)
 
     const X = await loadTensor("data/mnist_X.json")
@@ -185,9 +185,10 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
 
     const latentVectors = []
 
-    for (let i = 0; i < X.dims[0]; i++) { 
+    for (let i = 0; i < X.dims[0]; i++) {
         const hue = Math.floor((at(Y, [i])/10.0) * 360)
-        const fillStyle = 'hsla('+ hue +',70%,50%,0.3)'
+        //const fillStyle = 'hsla('+ hue +',70%,50%,0.3)'
+        const fillStyle = 'hsla(241, 83%, 24%,0.08)'
 
         const position = new Vector(Z.output.data[2*i], Z.output.data[2*i+1])
         const pointElement = new PointElement(position, 3, fillStyle)
@@ -230,11 +231,17 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         } catch (e) {
             console.log(`failed to inference ONNX model: ${e}.`);
         }
+        
+        var minDist = Infinity
+        var minDistIndex
 
-        // TODO low prio this could be done more efficiently
-        const distances = latentVectors.map(vector => vector.distance(mouse))
-        const minDist = Math.min(...distances)
-        const minDistIndex = distances.indexOf(minDist)
+        for(var i=0; i<latentVectors.length; i++) {
+            const d = latentVectors[i].distance(mouse)
+            if(d < minDist) {
+                minDist = d
+                minDistIndex = i
+            }
+        }
         const minDistPosition = latentVectors[minDistIndex]
 
         if(highlightPoint == null) {

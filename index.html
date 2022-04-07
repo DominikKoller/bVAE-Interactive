@@ -8,11 +8,46 @@
     <header>
         <title>ONNX Runtime JavaScript examples: Quick Start - Web (using bundler)</title>
     </header>
+    <head>
+        <style>
+            body {
+                background-color: #555555;
+            }
+            #main {
+                width: 841px;
+                height: 1189px;
+                margin: 0 auto;
+                position: relative;
+            }
+            #architectureInput {
+                position: absolute;
+                left: 164px;
+                top: 256px;
+            }
+
+            #architectureLatent {
+                position: absolute;
+                left: 331px;
+                top: 256px;
+                background-color: white;
+            }
+
+            #architectureOutput {
+                position: absolute;
+                left: 492px;
+                top: 256px;
+            }
+        </style>
+    </head>
     <body>
-        <canvas id="architectureInput" width="400" height="400" style="border-style:solid"></canvas>
-        <canvas id="architectureLatent" width="300" height="300" style="border-style:solid"></canvas>
-        <canvas id="architectureOutput" width="400" height="400" style="border-style:solid"></canvas>
+    <div id="main">
+        <img src="figma_frame.png" width="841" height="1189" alt="Figma Poster">
+        <canvas id="architectureInput" width="126" height="126" ></canvas>
+        <canvas id="architectureLatent" width="126" height="126" ></canvas>
+        <canvas id="architectureOutput" width="126" height="126" ></canvas>
+        
         <!-- consume a single file bundle -->
         <script src="./dist/bundle.min.js"></script>
+    </div>
     </body>
 </html>
