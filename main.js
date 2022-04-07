@@ -99,30 +99,6 @@ class PointElement {
 //#endregion minigraphics
 
 //#region main
-async function drawResult(canvas, decoder, x, y) {
-    try {
-        // prepare inputs. a tensor need its corresponding TypedArray as data
-        const X = new ort.Tensor('float32', [x, y], [1, 2]);
-
-        const feeds = { input: X };
-
-        const X_out = await decoder.run(feeds);
-
-        const data_X_out = X_out.output.data;
-
-        imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
-        offscreen = new OffscreenCanvas(28, 28);
-        offscreenCtx = offscreen.getContext('2d');
-        offscreenCtx.putImageData(imageData, 0,0)
-
-        let rect = canvas.getBoundingClientRect();
-        let ctx = canvas.getContext('2d')
-        ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
-
-    } catch (e) {
-        document.write(`failed to inference ONNX model: ${e}.`);
-    }
-}
 
 async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
     
