@@ -201,8 +201,11 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
 
     var inferenceIsRunning = false
 
-    latentCanvas.addEventListener("mousemove", async function(e)
+    var onMove = async function(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+        
         if(inferenceIsRunning){
             return
         }
@@ -271,7 +274,10 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
         
         inferenceIsRunning = false
-    });
+    };
+
+    latentCanvas.addEventListener("mousemove", onMove);
+    latentCanvas.addEventListener("touchmove", onMove);
 
     latentFrame.draw()
 }
