@@ -124,53 +124,6 @@ async function drawResult(canvas, decoder, x, y) {
     }
 }
 
-// use an async context to call onnxruntime functions.
-async function setup(interactionCanvas, resultCanvas, encoder, decoder, scale) {
-    interactionCtx = interactionCanvas.getContext('2d')
-
-    interactionCtx.translate(interactionCanvas.width/2, interactionCanvas.height/2)
-    interactionCtx.scale(scale*interactionCanvas.width/2, scale*interactionCanvas.height/2)
-
-    interactionCtx.beginPath()
-    interactionCtx.rect(-1/scale, -1/scale, 2/scale, 2/scale)
-    interactionCtx.lineWidth = 0.1
-    interactionCtx.stroke()
-
-    drawAxis(interactionCtx, size=30)
-
-    let ctx = resultCanvas.getContext('2d');
-    ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
-
-    decoder = await ort.InferenceSession.create(decoder);
-    
-    interactionCanvas.addEventListener("mousemove", function(e)
-    {
-        const {x, y} = getMousePosition(interactionCanvas, e);
-        drawResult(resultCanvas, decoder, x, y)
-    });
-
-    encoder = await ort.InferenceSession.create(encoder)
-
-    const X = await loadTensor("data/mnist_X.json")
-    const Y = await loadTensor("data/mnist_Y.json")
-    const feeds = { input: X };
-    const Z = await encoder.run(feeds);
-
-    for (let i = 0; i < X.dims[0]; i++) { 
-        var hue = Math.floor((at(Y, [i])/10.0) * 360)
-        interactionCtx.fillStyle = 'hsla('+ hue +',70%,50%,0.3)';
-
-        point = {
-            x: Z.output.data[2*i],
-            y: Z.output.data[2*i+1]
-        }
-
-        interactionCtx.beginPath();
-        pixelSizedPoint(interactionCtx, point, radius=2)
-        interactionCtx.fill();
-    }
-}
-
 async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
     
     latentScale = 1.0/4
@@ -225,7 +178,7 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
             imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
             offscreen = new OffscreenCanvas(28, 28);
             offscreenCtx = offscreen.getContext('2d');
-            offscreenCtx.putImageData(imageData, 0,0)
+            offscreenCtx.putImageData(imageData, 0,0);
     
             let rect = outputCanvas.getBoundingClientRect();
             let ctx = outputCanvas.getContext('2d')
