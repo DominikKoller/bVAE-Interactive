@@ -23,6 +23,8 @@
                 position: absolute;
                 left: 164px;
                 top: 256px;
+                width: 126px;
+                height: 126px;
             }
 
             #architectureLatent {
@@ -30,12 +32,16 @@
                 left: 331px;
                 top: 256px;
                 background-color: white;
+                width: 126px;
+                height: 126px;
             }
 
             #architectureOutput {
                 position: absolute;
                 left: 492px;
                 top: 256px;
+                width: 126px;
+                height: 126px;
             }
         </style>
     </head>
@@ -44,7 +50,7 @@
         <img src="figma_frame.png" width="841" height="1189" alt="Figma Poster">
         <canvas id="architectureInput" width="126" height="126" ></canvas>
         <canvas id="architectureLatent" width="126" height="126" ></canvas>
-        <canvas id="architectureOutput" width="126" height="126" ></canvas>
+        <canvas id="architectureOutput" width="28" height="28" ></canvas>
         
         <!-- consume a single file bundle -->
         <script src="./dist/bundle.min.js"></script>

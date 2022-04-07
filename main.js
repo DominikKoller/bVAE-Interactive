@@ -176,13 +176,15 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
             const data_X_out = X_out.output.data;
     
             imageData = new ImageData(new Uint8ClampedArray(data_X_out), 28, 28)
-            offscreen = new OffscreenCanvas(28, 28);
-            offscreenCtx = offscreen.getContext('2d');
-            offscreenCtx.putImageData(imageData, 0,0);
+            // offscreen = new OffscreenCanvas(28, 28);
+            // offscreenCtx = offscreen.getContext('2d');
+            // offscreenCtx.putImageData(imageData, 0,0);
     
-            let rect = outputCanvas.getBoundingClientRect();
+            // let rect = outputCanvas.getBoundingClientRect();
+            // let ctx = outputCanvas.getContext('2d')
+            // ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
             let ctx = outputCanvas.getContext('2d')
-            ctx.drawImage(offscreen, 0, 0, rect.width, rect.height)
+            ctx.putImageData(imageData, 0, 0);
     
         } catch (e) {
             console.log(`failed to inference ONNX model: ${e}.`);
