@@ -16,12 +16,27 @@ class Frame {
             this.context.translate(canvas.width/2, canvas.height/2)
             this.context.scale(scale*canvas.width/2, scale*canvas.height/2)
         }
+        window.requestAnimationFrame(this.frameLoop.bind(this))
+    }
+
+    frameLoop() {
+        this.draw()
+        this.update()
+        window.requestAnimationFrame(this.frameLoop.bind(this))
     }
 
     draw() {
         this.clear()
         for(const element of this.elements) {
             element.draw(this.context)
+        }
+    }
+
+    update() {
+        for(const element of this.elements) {
+            if (typeof element.update === "function") { 
+                element.update()
+            }
         }
     }
 
@@ -34,6 +49,13 @@ class Frame {
 
     addElement(element) {
         this.elements.push(element)
+    }
+
+    removeElement(element) {
+        const index = this.elements.indexOf(element);
+        if (index > -1) {
+            this.elements.splice(index, 1); // 2nd parameter means remove one item only
+        }
     }
 }
 
@@ -90,6 +112,30 @@ class PointElement {
     }
 }
 
+class RotatingRectangleElement {
+    constructor(position, size, fillStyle='#000000') {
+        this.position = position
+        this.size = size
+        this.fillStyle = fillStyle
+        this.rotation = 0.0
+    }
+
+    draw(context) {
+        context.save()
+        context.fillStyle = this.fillStyle
+        context.translate(this.position.x, this.position.y)
+        context.rotate(this.rotation)
+        context.beginPath()
+        context.rect(-this.size.x/2.0, -this.size.y/2.0, this.size.x, this.size.y);
+        context.fill()
+        context.restore()
+    }
+
+    update() {
+        this.rotation = this.rotation + 0.05
+    }
+}
+
 // function pixelSizedDrawing(ctx, f){
 //     const t = ctx.getTransform()
 //     ctx.resetTransform()
@@ -102,8 +148,17 @@ class PointElement {
 
 async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
     
+    latentCanvas.style.backgroundColor = "white"
     latentScale = 1.0/4
     latentFrame = new Frame(latentCanvas, true, latentScale)
+    // window.requestAnimationFrame(latentFrame.frameLoop.bind(latentFrame))
+
+    // hack
+    const loadingIcon = new RotatingRectangleElement(
+        new Vector(0.0,0.0),
+        new Vector(2.5, 2.5),
+        "#222233")
+    latentFrame.addElement(loadingIcon)
 
     const X = await loadTensor("data/mnist_X.json")
     const Y = await loadTensor("data/mnist_Y.json")
@@ -126,6 +181,9 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
     }
 
     decoder = await ort.InferenceSession.create(decoder)
+
+    latentFrame.removeElement(loadingIcon)
+    latentCanvas.style.background = "none" //HACK
     var highlightPoint
 
     var inferenceIsRunning = false
@@ -185,7 +243,6 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         } else {
             highlightPoint.position = minDistPosition;
         }
-        latentFrame.draw()
 
         let ctx = inputCanvas.getContext('2d')
         var imgData = ctx.createImageData(28, 28);
@@ -224,8 +281,6 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         let position = getMousePosition(latentCanvas, clientPosition);
         onMove(position)
     });
-
-    latentFrame.draw()
 }
 
 
