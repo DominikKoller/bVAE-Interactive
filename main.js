@@ -117,11 +117,11 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
     for (let i = 0; i < X.dims[0]; i++) {
         const hue = Math.floor((at(Y, [i])/10.0) * 360)
         //const fillStyle = 'hsla('+ hue +',70%,50%,0.3)'
-        const fillStyle = 'hsla(241, 83%, 24%,0.08)'
+        //const fillStyle = 'hsla(241, 83%, 24%,0.08)'
 
         const position = new Vector(Z.output.data[2*i], Z.output.data[2*i+1])
-        const pointElement = new PointElement(position, 3, fillStyle)
-        latentFrame.addElement(pointElement)
+        //const pointElement = new PointElement(position, 3, fillStyle)
+        // latentFrame.addElement(pointElement)
         latentVectors.push(position)
     }
 
@@ -129,24 +129,31 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
     var highlightPoint
 
     var inferenceIsRunning = false
+    var isSetup = false //hack
 
-    var onMove = async function(e)
+    var onMove = async function(position)
     {
-        e.preventDefault();
-        e.stopPropagation();
-        
+        if(!isSetup) {
+            try {
+                for(const position of latentVectors) {
+                    const pointElement = new PointElement(position, 3, 'hsla(241, 83%, 24%,0.08)')
+                    latentFrame.addElement(pointElement)
+                }
+            }
+            finally {
+                isSetup = true
+            }
+        }
         if(inferenceIsRunning){
             return
         }
         inferenceIsRunning = true
         try {
         
-        const mouse = getMousePosition(latentCanvas, e);
-        
         // Drawing result to Output canvas. This should always be the first thing we do.
         try {
             // prepare inputs. a tensor need its corresponding TypedArray as data
-            const Z = new ort.Tensor('float32', [mouse.x, mouse.y], [1, 2]);
+            const Z = new ort.Tensor('float32', [position.x, position.y], [1, 2]);
             const feeds = { input: Z };
             const X_out = await decoder.run(feeds);
     
@@ -164,7 +171,7 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         var minDistIndex
 
         for(var i=0; i<latentVectors.length; i++) {
-            const d = latentVectors[i].distance(mouse)
+            const d = latentVectors[i].distance(position)
             if(d < minDist) {
                 minDist = d
                 minDistIndex = i
@@ -197,8 +204,26 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         }
     };
 
-    latentCanvas.addEventListener("mousemove", onMove);
-    latentCanvas.addEventListener("touchmove", onMove);
+    latentCanvas.addEventListener("mousemove", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // kinda a hack
+        latentCanvas.style.backgroundColor = "white";
+        let clientPosition = new Vector(e.clientX, e.clientY);
+        let position = getMousePosition(latentCanvas, clientPosition);
+        onMove(position)
+    });
+    latentCanvas.addEventListener("touchmove", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // kinda a hack
+        latentCanvas.style.backgroundColor = "white";
+        let clientPosition = new Vector(e.touches[0].clientX, e.touches[0].clientY);
+        let position = getMousePosition(latentCanvas, clientPosition);
+        onMove(position)
+    });
 
     latentFrame.draw()
 }
@@ -229,12 +254,12 @@ async function loadTensor(jsonPath){
     return new ort.Tensor('float32', Array.from(flatten(data)), shape(data));
 }
 
-function getMousePosition(canvas, event) {
+function getMousePosition(canvas, clientPosition) {
     let rect = canvas.getBoundingClientRect();
     let ctx = canvas.getContext('2d')
 
     // const point = {x: event.clientX - rect.left, y: event.clientY - rect.top};
-    const vector = new Vector(event.clientX - rect.left, event.clientY - rect.top)
+    const vector = new Vector(clientPosition.x - rect.left, clientPosition.y - rect.top)
     const matrix = ctx.getTransform().invertSelf();
     
     // return transformPoint(matrix, point)
