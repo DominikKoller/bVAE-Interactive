@@ -336,8 +336,14 @@ function getMousePosition(canvas, clientPosition) {
     let rect = canvas.getBoundingClientRect();
     let ctx = canvas.getContext('2d')
 
+    var widthScale = canvas.width / rect.width;
+    var heightScale = canvas.height / rect.height;
+
     // const point = {x: event.clientX - rect.left, y: event.clientY - rect.top};
-    const vector = new Vector(clientPosition.x - rect.left, clientPosition.y - rect.top)
+    const vector = new Vector(
+        (clientPosition.x - rect.left) * widthScale, 
+        (clientPosition.y - rect.top) * heightScale
+        )
     const matrix = ctx.getTransform().invertSelf();
     
     // return transformPoint(matrix, point)
