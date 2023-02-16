@@ -22,7 +22,7 @@ class Frame {
     frameLoop() {
         this.draw()
         this.update()
-        window.requestAnimationFrame(this.frameLoop.bind(this))
+        this.cancellationID = window.requestAnimationFrame(this.frameLoop.bind(this))
     }
 
     draw() {
@@ -55,6 +55,12 @@ class Frame {
         const index = this.elements.indexOf(element);
         if (index > -1) {
             this.elements.splice(index, 1); // 2nd parameter means remove one item only
+        }
+    }
+
+    destroy() {
+        if(typeof this.cancellationID !== "undefined") {
+            window.cancelAnimationFrame(this.cancellationID);
         }
     }
 }
@@ -146,8 +152,15 @@ class RotatingRectangleElement {
 
 //#region main
 
+var onDestroy
+
 async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encoder, decoder, inputs) {
     
+    if (typeof onDestroy === "function") { 
+        onDestroy()
+        console.log("on destroy. removing listeners")
+    }
+
     latentCanvas.style.backgroundColor = "white"
     latentScale = 1.0/4
     latentFrame = new Frame(latentCanvas, true, latentScale)
@@ -261,7 +274,7 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         }
     };
 
-    latentCanvas.addEventListener("mousemove", async function(e) {
+    function onMousemove(e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -270,8 +283,9 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         let clientPosition = new Vector(e.clientX, e.clientY);
         let position = getMousePosition(latentCanvas, clientPosition);
         onMove(position)
-    });
-    latentCanvas.addEventListener("touchmove", async function(e) {
+    }
+
+    function onTouchmove(e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -280,7 +294,16 @@ async function setupArchitecture(inputCanvas, latentCanvas, outputCanvas, encode
         let clientPosition = new Vector(e.touches[0].clientX, e.touches[0].clientY);
         let position = getMousePosition(latentCanvas, clientPosition);
         onMove(position)
-    });
+    }
+
+    latentCanvas.addEventListener("mousemove", onMousemove);
+    latentCanvas.addEventListener("touchmove", onTouchmove);
+
+    onDestroy = function() {
+        latentCanvas.removeEventListener("mousemove", onMousemove);
+        latentCanvas.removeEventListener("touchmove", onTouchmove);
+        latentFrame.destroy();
+    }
 }
 
 
